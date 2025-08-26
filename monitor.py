@@ -13,7 +13,7 @@ JST = ZoneInfo("Asia/Tokyo")
 
 # 現在時刻をJSTで取得
 NOW = datetime.now(JST)
-THRESHOLD = NOW - timedelta(minutes=90)
+THRESHOLD = NOW - timedelta(minutes=60)
 
 def parse_japanese_time(text: str, now: datetime) -> datetime | None:
     # 月日時間をパースしてJSTとして扱う
