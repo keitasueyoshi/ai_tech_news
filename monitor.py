@@ -41,9 +41,9 @@ def load_saved_articles():
             return json.load(f)
     return []
 
-def save_articles(articles):
+def save_articles(all_articles):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(articles, f, ensure_ascii=False, indent=2)
+        json.dump(all_articles, f, ensure_ascii=False, indent=2)
 
 def send_slack_notification(message):
     requests.post(SLACK_WEBHOOK_URL, json={"text": message})
@@ -60,7 +60,10 @@ async def main():
             message = f"🆕 新着記事: *{article['title']}*\n🔗 {article['url']}"
             send_slack_notification(message)
             print("通知:", message)
-        save_articles(current_articles)
+
+        # ✅ 既存の通知済み記事に追加して保存する（上書きしない）
+        updated_articles = saved_articles + new_articles
+        save_articles(updated_articles)
     else:
         print("新着記事なし")
 
