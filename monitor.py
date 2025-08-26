@@ -12,9 +12,12 @@ SLACK_WEBHOOK_URL = os.environ["SLACK_WEBHOOK_URL"]
 NOW = datetime.now()
 THRESHOLD = NOW - timedelta(minutes=90)
 
-# 日付パースに使うフォーマット
-TIME_FORMAT = "%m月%d日 %H:%M"
-
+def parse_japanese_time(text: str, now: datetime) -> datetime | None:
+    match = re.match(r"(\d{1,2})月(\d{1,2})日\s+(\d{1,2}):(\d{2})", text.strip())
+    if not match:
+        return None
+    month, day, hour, minute = map(int, match.groups())
+    return datetime(now.year, month, day, hour, minute)
 
 async def fetch_recent_articles():
     async with async_playwright() as p:
@@ -40,34 +43,39 @@ async def fetch_recent_articles():
             h3 = await card.query_selector("h3")
             title = await h3.inner_text() if h3 else "タイトルなし"
 
-            # 投稿日時のテキスト抽出
-            time_span = await card.query_selector("span")
-            time_text = await time_span.inner_text() if time_span else None
+            # 日付抽出（全 span の中から探す）
+            spans = await card.query_selector_all("span")
+            time_text = None
+            for span in spans:
+                text = await span.inner_text()
+                if re.match(r"\d{1,2}月\d{1,2}日\s+\d{1,2}:\d{2}", text):
+                    time_text = text
+                    break
             if not time_text:
+                print("⚠️ 日付が見つからない記事:", title)
                 continue
 
-            try:
-                # 日時をパース（年がないので補完）
-                published = datetime.strptime(time_text.strip(), TIME_FORMAT)
-                published = published.replace(year=NOW.year)
-            except ValueError:
+            published = parse_japanese_time(time_text, NOW)
+            if not published:
                 print(f"⚠️ 日付パース失敗: {time_text}")
                 continue
 
-            # 30分以内の記事だけ追加
+            # 90分以内の記事だけ追加
             if published >= THRESHOLD:
-                recent_articles.append({"title": title.strip(), "url": url, "time": time_text})
+                recent_articles.append({
+                    "title": title.strip(),
+                    "url": url,
+                    "time": time_text
+                })
 
         await browser.close()
         return recent_articles
-
 
 def send_slack_notification(article):
     message = f"🆕 新着記事: *{article['title']}*（{article['time']} 公開）\n🔗 {article['url']}"
     response = requests.post(SLACK_WEBHOOK_URL, json={"text": message})
     if response.status_code != 200:
         print("Slack送信エラー:", response.text)
-
 
 async def main():
     articles = await fetch_recent_articles()
@@ -77,7 +85,6 @@ async def main():
             print("通知:", article["title"])
     else:
         print("新着記事なし")
-
 
 if __name__ == "__main__":
     asyncio.run(main())
