@@ -23,6 +23,6 @@ jobs:
           playwright install
 
       - name: Run script
-        run: python your_script.py
+        run: python monitor.py
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
