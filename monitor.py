@@ -47,8 +47,11 @@ def send_slack_notification(message):
 
 def main():
     current_articles = fetch_articles()
-    saved_articles = load_saved_articles()
+    print("取得記事数:", len(current_articles))
+    for a in current_articles:
+        print(a["title"], a["url"])
 
+    saved_articles = load_saved_articles()
     saved_urls = {a["url"] for a in saved_articles}
     new_articles = [a for a in current_articles if a["url"] not in saved_urls]
 
@@ -63,4 +66,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
