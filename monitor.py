@@ -1,57 +1,57 @@
-import requests
-from bs4 import BeautifulSoup
-import hashlib
+import asyncio
+from playwright.async_api import async_playwright
+import re
 import os
 import json
-import re
+import requests
 
 URL = "https://ai-info-aggregator.vercel.app/"
-SLACK_WEBHOOK_URL = os.environ["SLACK_WEBHOOK_URL"]
 DATA_FILE = "articles.json"
+SLACK_WEBHOOK_URL = os.environ["SLACK_WEBHOOK_URL"]
 
-def fetch_articles():
-    response = requests.get(URL)
-    soup = BeautifulSoup(response.text, 'html.parser')
-    articles = []
+async def fetch_articles():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
+        await page.goto(URL)
 
-    for card in soup.select("div.article-card"):
-        # onclick属性からURLを抽出
-        onclick = card.get("onclick", "")
-        match = re.search(r"window\.open\('(.+?)'", onclick)
-        if not match:
-            continue
-        url = match.group(1)
+        cards = await page.query_selector_all("div.article-card")
 
-        # タイトルをh3から抽出
-        title_tag = card.find("h3")
-        if not title_tag:
-            continue
-        title = title_tag.get_text(strip=True)
+        articles = []
+        for card in cards:
+            onclick = await card.get_attribute("onclick")
+            if not onclick:
+                continue
+            match = re.search(r"window\.open\('(.+?)'", onclick)
+            if not match:
+                continue
+            url = match.group(1)
 
-        articles.append({"title": title, "url": url})
+            h3 = await card.query_selector("h3")
+            title = await h3.inner_text() if h3 else "タイトルなし"
 
-    return articles
+            articles.append({"title": title.strip(), "url": url})
+
+        await browser.close()
+        return articles
 
 def load_saved_articles():
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     return []
 
 def save_articles(articles):
-    with open(DATA_FILE, "w") as f:
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(articles, f, ensure_ascii=False, indent=2)
 
 def send_slack_notification(message):
     requests.post(SLACK_WEBHOOK_URL, json={"text": message})
 
-def main():
-    current_articles = fetch_articles()
-    print("取得記事数:", len(current_articles))
-    for a in current_articles:
-        print(a["title"], a["url"])
-
+async def main():
+    current_articles = await fetch_articles()
     saved_articles = load_saved_articles()
+
     saved_urls = {a["url"] for a in saved_articles}
     new_articles = [a for a in current_articles if a["url"] not in saved_urls]
 
@@ -65,4 +65,4 @@ def main():
         print("新着記事なし")
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
