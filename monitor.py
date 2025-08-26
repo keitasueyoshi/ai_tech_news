@@ -4,20 +4,25 @@ import re
 import os
 import requests
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 URL = "https://ai-info-aggregator.vercel.app/"
 SLACK_WEBHOOK_URL = os.environ["SLACK_WEBHOOK_URL"]
 
-# 実行時の現在時刻
-NOW = datetime.now()
+JST = ZoneInfo("Asia/Tokyo")
+
+# 現在時刻をJSTで取得
+NOW = datetime.now(JST)
 THRESHOLD = NOW - timedelta(minutes=90)
 
 def parse_japanese_time(text: str, now: datetime) -> datetime | None:
+    # 月日時間をパースしてJSTとして扱う
     match = re.match(r"(\d{1,2})月(\d{1,2})日\s+(\d{1,2}):(\d{2})", text.strip())
     if not match:
         return None
     month, day, hour, minute = map(int, match.groups())
-    return datetime(now.year, month, day, hour, minute)
+    # JSTのnow.yearを使い、日本時間のdatetimeを作成
+    return datetime(now.year, month, day, hour, minute, tzinfo=JST)
 
 async def fetch_recent_articles():
     async with async_playwright() as p:
