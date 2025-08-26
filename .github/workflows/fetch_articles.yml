@@ -2,7 +2,7 @@ name: Fetch Articles
 
 on:
   schedule:
-    - cron: '30 21-13/1 * * 0-4'
+    - cron: '0 0-13/1 * * 1-5'
   workflow_dispatch:
 
 jobs:
