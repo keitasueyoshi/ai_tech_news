@@ -2,7 +2,7 @@ name: Fetch Articles
 
 on:
   schedule:
-    - cron: '* */1 * * 1-5'
+    - cron: '* */5 * * 1-5'
   workflow_dispatch:
 
 jobs:
@@ -20,11 +20,11 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip install --upgrade pip
-          pip install requests playwright beautifulsoup4
+          python -m pip install --upgrade pip
+          pip install requests playwright
 
       - name: Install Playwright browsers
-        run: playwright install
+        run: playwright install --with-deps  # ← 依存も含めて確実に動作
 
       - name: Run monitor script
         run: python monitor.py
