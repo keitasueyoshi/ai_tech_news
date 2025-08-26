@@ -60,6 +60,8 @@ async def fetch_recent_articles():
                 print(f"⚠️ 日付パース失敗: {time_text}")
                 continue
 
+            print(f"記事日時: {published} | 閾値日時: {THRESHOLD} | タイトル: {title}")
+
             # 90分以内の記事だけ追加
             if published >= THRESHOLD:
                 recent_articles.append({
