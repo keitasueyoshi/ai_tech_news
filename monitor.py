@@ -13,7 +13,7 @@ JST = ZoneInfo("Asia/Tokyo")
 
 # 現在時刻をJSTで取得
 NOW = datetime.now(JST)
-THRESHOLD = NOW - timedelta(minutes=60)
+THRESHOLD = NOW - timedelta(minutes=90)
 
 def parse_japanese_time(text: str, now: datetime) -> datetime | None:
     # 月日時間をパースしてJSTとして扱う
@@ -67,7 +67,7 @@ async def fetch_recent_articles():
 
             print(f"記事日時: {published} | 閾値日時: {THRESHOLD} | タイトル: {title}")
 
-            # 60分以内の記事だけ追加
+            # 90分以内の記事だけ追加
             if published >= THRESHOLD:
                 recent_articles.append({
                     "title": title.strip(),
