@@ -67,7 +67,7 @@ async def fetch_recent_articles():
 
             print(f"記事日時: {published} | 閾値日時: {THRESHOLD} | タイトル: {title}")
 
-            # 90分以内の記事だけ追加
+            # 60分以内の記事だけ追加
             if published >= THRESHOLD:
                 recent_articles.append({
                     "title": title.strip(),
@@ -79,7 +79,7 @@ async def fetch_recent_articles():
         return recent_articles
 
 def send_slack_notification(article):
-    message = f"🆕 新着記事: *{article['title']}*（{article['time']} 公開）\n🔗 {article['url']}"
+    message = f"{article['title']}（{article['time']}）\n{article['url']}"
     response = requests.post(SLACK_WEBHOOK_URL, json={"text": message})
     if response.status_code != 200:
         print("Slack送信エラー:", response.text)
